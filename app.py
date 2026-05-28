@@ -5,7 +5,7 @@ import customtkinter as ctk
 import psutil
 
 # Konfigurasi Tema GUI
-ctk.set_appearance_mode("System")  # Pilihan: "System", "Dark", "Light"
+ctk.set_appearance_mode("Dark")  # Force Dark Mode untuk tampilan premium
 ctk.set_default_color_theme("blue")
 
 class CacheCleanerApp(ctk.CTk):
@@ -13,8 +13,9 @@ class CacheCleanerApp(ctk.CTk):
         super().__init__()
 
         self.title("Vibe Coding Cache Cleaner")
-        self.geometry("600x550")
+        self.geometry("840x520")
         self.resizable(False, False)
+        self.configure(fg_color="#0f172a")  # Slate 900 (Gelap modern)
 
         user_home = os.path.expanduser("~")
 
@@ -71,40 +72,120 @@ class CacheCleanerApp(ctk.CTk):
         self.setup_ui()
 
     def setup_ui(self):
-        # Header
-        self.header_label = ctk.CTkLabel(self, text="AI Agent Cache Cleaner", font=ctk.CTkFont(size=20, weight="bold"))
-        self.header_label.pack(pady=(20, 10))
+        # --- HEADER AREA ---
+        self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.header_frame.pack(fill="x", padx=40, pady=(20, 15))
 
-        self.sub_label = ctk.CTkLabel(self, text="Tutup proses & bersihkan chat history yang mengunci", font=ctk.CTkFont(size=12))
-        self.sub_label.pack(pady=(0, 15))
+        self.header_label = ctk.CTkLabel(
+            self.header_frame, 
+            text="Vibe Coding Cache Cleaner", 
+            font=ctk.CTkFont(family="Segoe UI", size=22, weight="bold"),
+            text_color="#f8fafc"
+        )
+        self.header_label.pack(anchor="w")
 
-        # Frame untuk Target Checkbox (Menggunakan CTkScrollableFrame agar muat banyak)
-        self.checkbox_frame = ctk.CTkScrollableFrame(self, height=150)
-        self.checkbox_frame.pack(pady=10, fill="x", padx=40)
+        self.sub_label = ctk.CTkLabel(
+            self.header_frame, 
+            text="Tutup paksa proses AI Agent & bersihkan file cache pengunci chat history secara aman", 
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            text_color="#94a3b8"
+        )
+        self.sub_label.pack(anchor="w", pady=(2, 0))
+
+        # --- MAIN BODY FRAME (Dashboard 2 Kolom) ---
+        self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.content_frame.pack(fill="both", expand=True, padx=40, pady=(0, 20))
+        
+        self.content_frame.columnconfigure(0, weight=4) # Kolom Kiri: Checkboxes (Lebih ramping)
+        self.content_frame.columnconfigure(1, weight=5) # Kolom Kanan: Console (Lebih lebar)
+        self.content_frame.rowconfigure(0, weight=1)
+
+        # ================= KOLOM KIRI: PILIH TARGET =================
+        self.left_frame = ctk.CTkFrame(self.content_frame, fg_color="#1e293b", corner_radius=12, border_color="#334155", border_width=1)
+        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+
+        self.left_title = ctk.CTkLabel(
+            self.left_frame, 
+            text="1. PILIH AI AGENT TARGET", 
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            text_color="#38bdf8"
+        )
+        self.left_title.pack(anchor="w", padx=18, pady=(15, 8))
+
+        # Scrollable Frame untuk target
+        self.checkbox_frame = ctk.CTkScrollableFrame(
+            self.left_frame, 
+            fg_color="transparent", 
+            scrollbar_button_color="#334155",
+            scrollbar_button_hover_color="#475569"
+        )
+        self.checkbox_frame.pack(fill="both", expand=True, padx=8, pady=(0, 15))
 
         for name, info in self.targets.items():
-            # Auto-detect: Cek apakah folder cache ada di sistem
             cache_exists = os.path.exists(info["cache_path"])
             
             if cache_exists:
                 display_text = f"{name} (Terdeteksi)"
-                var = ctk.BooleanVar(value=True)  # Auto-check jika ditemukan
+                var = ctk.BooleanVar(value=True)
+                tc = "#f8fafc"  # Bright white for detected
+                bc = "#0ea5e9"  # Active border
             else:
                 display_text = f"{name}"
-                var = ctk.BooleanVar(value=False) # Uncheck jika tidak ada
+                var = ctk.BooleanVar(value=False)
+                tc = "#64748b"  # Muted slate for missing
+                bc = "#334155"  # Muted border
                 
             self.checkbox_vars[name] = var
-            cb = ctk.CTkCheckBox(self.checkbox_frame, text=display_text, variable=var)
-            cb.pack(anchor="w", pady=6, padx=20)
+            cb = ctk.CTkCheckBox(
+                self.checkbox_frame, 
+                text=display_text, 
+                variable=var,
+                text_color=tc,
+                fg_color="#0ea5e9",
+                hover_color="#0284c7",
+                border_color=bc,
+                font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold" if cache_exists else "normal")
+            )
+            cb.pack(anchor="w", pady=6, padx=15)
 
-        # Log Console
-        self.log_text = ctk.CTkTextbox(self, height=150, width=520, state="disabled")
-        self.log_text.pack(pady=15, padx=40)
-        self.log("Sistem Siap. Pilih target dan klik 'Mulai Pembersihan'.")
+        # ================= KOLOM KANAN: KONSOL & AKSI =================
+        self.right_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
+        self.right_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
 
-        # Tombol Aksi Utama
-        self.clean_btn = ctk.CTkButton(self, text="Mulai Pembersihan", command=self.start_cleanup_thread, font=ctk.CTkFont(weight="bold"))
-        self.clean_btn.pack(pady=(5, 20))
+        self.right_title = ctk.CTkLabel(
+            self.right_frame, 
+            text="2. KONSOL STATUS & AKSI", 
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            text_color="#38bdf8"
+        )
+        self.right_title.pack(anchor="w", pady=(0, 8))
+
+        # Log Console (Gaya Terminal Modern)
+        self.log_text = ctk.CTkTextbox(
+            self.right_frame, 
+            fg_color="#09090b", 
+            text_color="#34d399",  # Monospace green matrix style
+            font=("Consolas", 11), 
+            border_color="#334155",
+            border_width=1,
+            state="disabled"
+        )
+        self.log_text.pack(fill="both", expand=True, pady=(0, 15))
+        self.log("Sistem Siap. Pilih target lalu klik 'Mulai Pembersihan'.")
+
+        # Tombol Pembersihan Besar & Premium
+        self.clean_btn = ctk.CTkButton(
+            self.right_frame, 
+            text="MULAI PEMBERSIHAN", 
+            height=45,
+            fg_color="#0ea5e9",
+            hover_color="#0284c7",
+            text_color="#ffffff",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            corner_radius=8,
+            command=self.start_cleanup_thread
+        )
+        self.clean_btn.pack(fill="x")
 
     def log(self, message):
         """Fungsi helper untuk mencetak log ke GUI Console"""
